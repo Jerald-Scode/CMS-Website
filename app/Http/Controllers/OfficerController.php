@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\OfficerStoreRequest;
+use App\Http\Requests\OfficerUpdateRequest;
 use App\Models\Officer;
 use App\Models\OfficerCategory;
 use Illuminate\Http\Request;
@@ -13,11 +15,29 @@ class OfficerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $officers = Officer::with('category')->latest()->get();
+        $search = $request->input('search');
+
+        $officers = Officer::with('category')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('position', 'like', "%{$search}%")
+                      ->orWhere('birthday', 'like', "%{$search}%")
+                      ->orWhere('yearservice', 'like', "%{$search}%")
+                      ->orWhereHas('category', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->latest()
+            ->paginate(5)
+            ->withQueryString();
+
         return Inertia::render('Admin/Officers/index', [
-            'officers' => $officers
+            'officers' => $officers,
+            'filters' => $request->only(['search'])
         ]);
     }
 
@@ -30,22 +50,14 @@ class OfficerController extends Controller
         return Inertia::render('Admin/Officers/create', [
             'categories' => $categories
         ]);
-
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(OfficerStoreRequest $request)
     {
-        $validated = $request->validate([
-            'officer_category_id' => 'nullable|exists:officer_categories,id',
-            'name' => 'required|string|max:255',
-            'position' => 'required|string|max:255',
-            'birthday' => 'required|date',
-            'yearservice' => 'required|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('officers', 'public');
@@ -81,25 +93,28 @@ class OfficerController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(OfficerUpdateRequest $request, string $id)
     {
         $officer = Officer::findOrFail($id);
 
-        $validated = $request->validate([
-            'officer_category_id' => 'nullable|exists:officer_categories,id',
-            'name' => 'required|string|max:255',
-            'position' => 'required|string|max:255',
-            'birthday' => 'required|date',
-            'yearservice' => 'required|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        $validated = $request->validated();
 
+        // Handle image update
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($officer->image) {
                 Storage::disk('public')->delete($officer->image);
             }
             $validated['image'] = $request->file('image')->store('officers', 'public');
+        } elseif ($request->boolean('remove_image')) {
+            // If remove_image is true, delete the image and set it to null
+            if ($officer->image) {
+                Storage::disk('public')->delete($officer->image);
+            }
+            $validated['image'] = null;
+        } else {
+            // If no new image is uploaded and remove_image is false, keep the existing image
+            unset($validated['image']);
         }
 
         $officer->update($validated);
@@ -124,10 +139,30 @@ class OfficerController extends Controller
 
         return redirect()->route('Admin.Officers.index')
             ->with('swal', [
-            'title' => 'Deleted!',
-            'text' => 'Officer deleted successfully.',
-            'icon' => 'success',
-            'timer' => 3000,
+                'title' => 'Deleted!',
+                'text' => 'Officer deleted successfully.',
+                'icon' => 'success',
+                'timer' => 3000,
             ]);
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:officers,id',
+        ]);
+
+        $officers = Officer::whereIn('id', $request->input('ids'))->get();
+
+        foreach ($officers as $officer) {
+            if ($officer->image) {
+                Storage::disk('public')->delete($officer->image);
+            }
+            $officer->delete();
+        }
+
+         return redirect()->back()->with('success', 'Selected officers have been deleted.');
+
     }
 }
