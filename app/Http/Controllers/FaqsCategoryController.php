@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FaqCategoryStoreRequest;
+use App\Http\Requests\FaqCategoryUpdateRequest;
 use App\Models\FaQCategory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,10 +13,22 @@ class FaqsCategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $categories = FaQCategory::withCount('faqs')->latest()->get();
-        return Inertia::render('Admin/FaqCategories/index', ['categories' => $categories]);
+        $search = $request->input('search');
+
+        $categories = FaQCategory::withCount('faqs')
+            ->when($search, function ($query, $search) {
+                $query->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->get();
+
+        return Inertia::render('Admin/FaqCategories/index', [
+            'categories' => $categories,
+            'filters' => $request->only(['search'])
+        ]);
     }
 
     /**
@@ -28,12 +42,9 @@ class FaqsCategoryController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(FaqCategoryStoreRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255|unique:faqs_category,title',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
         FaQCategory::create($validated);
            return redirect()->route('Admin.FaqCategories.index')
             ->with('success', 'Faq Category created successfully.');
@@ -64,13 +75,10 @@ class FaqsCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(FaqCategoryUpdateRequest $request, string $id)
     {
         $category = FaQCategory::findOrFail($id);
-        $validated = $request->validate([
-            'title' => 'required|string|max:255|unique:faqs_category,title,' . $id,
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $category->update($validated);
 

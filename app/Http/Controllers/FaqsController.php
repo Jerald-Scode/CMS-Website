@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FaqStoreRequest;
+use App\Http\Requests\FaqUpdateRequest;
 use App\Models\FaQC;
 use App\Models\FaQCategory;
-use App\Models\OfficerCategory; // Added this line
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,11 +14,19 @@ class FaqsController extends Controller
       /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $faqs = FaQC::with('faqCategory')->latest()->paginate(5);
+        $search = $request->input('search');
+
+        $faqs = FaQC::with('faqCategory')
+            ->when($search, function ($query, $search) {
+                $query->where('question', 'like', "%{$search}%")
+                      ->orWhere('answer', 'like', "%{$search}%");
+            })
+            ->latest()->paginate(5);
         return Inertia::render('Admin/Faq/index', [
-            'faqs' => $faqs
+            'faqs' => $faqs,
+            'filters' => $request->only(['search'])
         ]);
     }
 
@@ -35,13 +44,9 @@ class FaqsController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(FaqStoreRequest $request)
     {
-        $validated = $request->validate([
-            'faqs_categoryid' => 'required|exists:faqs_category,id',
-            'question' => 'required|string|max:255',
-            'answer' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         FaQC::create($validated);
 
@@ -73,15 +78,11 @@ class FaqsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(FaqUpdateRequest $request, string $id)
     {
         $faq = FaQC::findOrFail($id);
 
-        $validated = $request->validate([
-            'faqs_categoryid' => 'required|exists:faqs_category,id',
-            'question' => 'required|string|max:255',
-            'answer' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $faq->update($validated);
 
@@ -104,5 +105,23 @@ class FaqsController extends Controller
             'icon' => 'success',
             'timer' => 3000,
             ]);
+    }
+
+     public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:faqs_c,id',
+        ]);
+
+        FaQC::whereIn('id', $request->input('ids'))->delete();
+
+         return redirect()->back()->with('swal', [
+            'title' => 'Deleted!',
+            'text' => 'Selected FAQs have been deleted successfully.',
+            'icon' => 'success',
+            'timer' => 3000,
+            ]);
+
     }
 }

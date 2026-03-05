@@ -1,111 +1,111 @@
 <?php
-use App\Http\Controllers\OfficerController;
-use App\Http\Controllers\OfficerCategoryController;
-use App\Http\Controllers\FaqsController;
-use App\Http\Controllers\FaqsCategoryController;
+
+use App\Models\Downloadable;
+use App\Models\DownloadableCategory;
+use App\Models\FaQC;
+use App\Models\FaQCategory;
+use App\Models\Gallery;
+use App\Models\GalleryCategory;
+use App\Models\HomePageImage;
+use App\Models\NewsUpdate;
+use App\Models\OfficerCategory;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+/*
+|--------------------------------------------------------------------------
+| Public / Front-page Routes
+|--------------------------------------------------------------------------
+*/
+
+// Home
 Route::get('/', function () {
-    return Inertia::render('Frontpage/welcome');
+    return Inertia::render('Frontpage/Home/Index', [
+        'slides'     => HomePageImage::all(),
+        'latestNews' => NewsUpdate::latest()->take(6)->get(),
+    ]);
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('Admin/dashboard');
-    })->name('dashboard');
+// ── About Us ────────────────────────────────────────────────────────────
+Route::get('/about/gallery', function () {
+    return Inertia::render('Frontpage/AboutUs/Gallery', [
+        'galleries'  => Gallery::with('category')->latest()->get(),
+        'categories' => GalleryCategory::all(),
+    ]);
+})->name('about.gallery');
 
-    // Officer Categories
-    Route::get('/OfficerCategories', [OfficerCategoryController::class, 'index'])->name('Admin.OfficerCategories.index');
-    Route::get('/OfficerCategories/create', [OfficerCategoryController::class, 'create'])->name('Admin.OfficerCategories.create');
-    Route::post('/OfficerCategories', [OfficerCategoryController::class, 'store'])->name('Admin.OfficerCategories.store');
-    Route::get('/OfficerCategories/{id}/edit', [OfficerCategoryController::class, 'edit'])->name('Admin.OfficerCategories.edit');
-    Route::put('/OfficerCategories/{id}', [OfficerCategoryController::class, 'update'])->name('Admin.OfficerCategories.update');
-    Route::delete('/OfficerCategories/{id}', [OfficerCategoryController::class, 'destroy'])->name('Admin.OfficerCategories.destroy');
+Route::get('/about/history', function () {
+    return Inertia::render('Frontpage/AboutUs/History');
+})->name('about.history');
 
-    // Officers
-    Route::get('/Officers', [OfficerController::class, 'index'])->name('Admin.Officers.index');
-    Route::get('/Officers/create', [OfficerController::class, 'create'])->name('Admin.Officers.create');
-    Route::post('/Officers', [OfficerController::class, 'store'])->name('Admin.Officers.store');
-    Route::get('/Officers/{id}/edit', [OfficerController::class, 'edit'])->name('Admin.Officers.edit');
-    Route::put('/Officers/{id}', [OfficerController::class, 'update'])->name('Admin.Officers.update');
-    Route::delete('/Officers/bulk-delete', [OfficerController::class, 'bulkDestroy'])->name('officers.bulkDestroy');
-    Route::delete('/Officers/{id}', [OfficerController::class, 'destroy'])->name('Admin.Officers.destroy');
+Route::get('/about/membership', function () {
+    return Inertia::render('Frontpage/AboutUs/Membership');
+})->name('about.membership');
 
-      // Faq
-    Route::get('/Faq', [FaqsController::class, 'index'])->name('Admin.Faq.index');
-    Route::get('/Faq/create', [FaqsController::class, 'create'])->name('Admin.Faq.create');
-    Route::post('/Faq', [FaqsController::class, 'store'])->name('Admin.Faq.store');
-    Route::get('/Faq/{id}/edit', [FaqsController::class, 'edit'])->name('Admin.Faq.edit');
-    Route::put('/Faq/{id}', [FaqsController::class, 'update'])->name('Admin.Faq.update');
-    Route::delete('/Faq/{id}', [FaqsController::class, 'destroy'])->name('Admin.Faq.destroy');
+// ── Products & Services ─────────────────────────────────────────────────
+Route::get('/services/loans', function () {
+    return Inertia::render('Frontpage/Services/Loans');
+})->name('services.loans');
 
-    // FaqsCategories
-    Route::get('/FaqCategories', [FaqsCategoryController::class, 'index'])->name('Admin.FaqCategories.index');
-    Route::get('/FaqCategories/create', [FaqsCategoryController::class, 'create'])->name('Admin.FaqCategories.create');
-    Route::post('/FaqCategories', [FaqsCategoryController::class, 'store'])->name('Admin.FaqCategories.store');
-    Route::get('/FaqCategories/{id}/edit', [FaqsCategoryController::class, 'edit'])->name('Admin.FaqCategories.edit');
-    Route::put('/FaqCategories/{id}', [FaqsCategoryController::class, 'update'])->name('Admin.FaqCategories.update');
-    Route::delete('/FaqCategories/{id}', [FaqsCategoryController::class, 'destroy'])->name('Admin.FaqCategories.destroy');
+Route::get('/services/savings', function () {
+    return Inertia::render('Frontpage/Services/Savings');
+})->name('services.savings');
 
+Route::get('/services/safari', function () {
+    return Inertia::render('Frontpage/Services/Safari');
+})->name('services.safari');
 
-    // Downloadable Forms
-   Route::get('/DownloadableForms', [DownloadableFormsController::class, 'index'])->name('Admin.DownloadableForms.index');
-    Route::get('/DownloadableForms/create', [DownloadableFormsController::class, 'create'])->name('Admin.DownloadableForms.create');
-    Route::post('/DownloadableForms', [DownloadableFormsController::class, 'store'])->name('Admin.DownloadableForms.store');
-    Route::get('/DownloadableForms/{id}/edit', [DownloadableFormsController::class, 'edit'])->name('Admin.DownloadableForms.edit');
-    Route::put('/DownloadableForms/{id}', [DownloadableFormsController::class, 'update'])->name('Admin.DownloadableForms.update');
-    Route::delete('/DownloadableForms/{id}', [DownloadableFormsController::class, 'destroy'])->name('Admin.DownloadableForms.destroy');
+Route::get('/services/aqua-bope', function () {
+    return Inertia::render('Frontpage/Services/AquaBope');
+})->name('services.aqua-bope');
 
-    // Downloadable Form Categories
-    Route::get('/DownloadableFormCategories', [DownloadableFormCategoryController::class, 'index'])->name('Admin.DownloadableFormCategories.index');
-    Route::get('/DownloadableFormCategories/create', [DownloadableFormCategoryController::class, 'create'])->name('Admin.DownloadableFormCategories.create');
-    Route::post('/DownloadableFormCategories', [DownloadableFormCategoryController::class, 'store'])->name('Admin.DownloadableFormCategories.store');
-    Route::get('/DownloadableFormCategories/{id}/edit', [DownloadableFormCategoryController::class, 'edit'])->name('Admin.DownloadableFormCategories.edit');
-    Route::put('/DownloadableFormCategories/{id}', [DownloadableFormCategoryController::class, 'update'])->name('Admin.DownloadableFormCategories.update');
-    Route::delete('/DownloadableFormCategories/{id}', [DownloadableFormCategoryController::class, 'destroy'])->name('Admin.DownloadableFormCategories.destroy');
+Route::get('/services/commercial-building', function () {
+    return Inertia::render('Frontpage/Services/CommercialBuilding');
+})->name('services.commercial-building');
 
-    // Gallery
-    Route::get('/Gallery', [GalleryController::class, 'index'])->name('Admin.Gallery.index');
-    Route::get('/Gallery/create', [GalleryController::class, 'create'])->name('Admin.Gallery.create');
-    Route::post('/Gallery', [GalleryController::class, 'store'])->name('Admin.Gallery.store');
-    Route::get('/Gallery/{id}/edit', [GalleryController::class, 'edit'])->name('Admin.Gallery.edit');
-    Route::put('/Gallery/{id}', [GalleryController::class, 'update'])->name('Admin.Gallery.update');
-    Route::delete('/Gallery/{id}', [GalleryController::class, 'destroy'])->name('Admin.Gallery.destroy');
+// ── FAQs ────────────────────────────────────────────────────────────────
+Route::get('/faqs', function () {
+    return Inertia::render("Frontpage/Faq's/Index", [
+        'faqs'       => FaQC::with('faqCategory')->get(),
+        'categories' => FaQCategory::all(),
+    ]);
+})->name('faqs');
 
-    // Gallery Categories
-    Route::get('/GalleryCategories', [GalleryCategoryController::class, 'index'])->name('Admin.GalleryCategories.index');
-    Route::get('/GalleryCategories/create', [GalleryCategoryController::class, 'create'])->name('Admin.GalleryCategories.create');
-    Route::post('/GalleryCategories', [GalleryCategoryController::class, 'store'])->name('Admin.GalleryCategories.store');
-    Route::get('/GalleryCategories/{id}/edit', [GalleryCategoryController::class, 'edit'])->name('Admin.GalleryCategories.edit');
-    Route::put('/GalleryCategories/{id}', [GalleryCategoryController::class, 'update'])->name('Admin.GalleryCategories.update');
-    Route::delete('/GalleryCategories/{id}', [GalleryCategoryController::class, 'destroy'])->name('Admin.GalleryCategories.destroy');
+// ── News & Updates ──────────────────────────────────────────────────────
+Route::get('/news', function () {
+    return Inertia::render('Frontpage/News/Index', [
+        'news' => NewsUpdate::latest()->get(),
+    ]);
+})->name('news.index');
 
-    // News
-    Route::get('/News', [NewsController::class, 'index'])->name('Admin.News.index');
-    Route::get('/News/create', [NewsController::class, 'create'])->name('Admin.News.create');
-    Route::post('/News', [NewsController::class, 'store'])->name('Admin.News.store');
-    Route::get('/News/{id}/edit', [NewsController::class, 'edit'])->name('Admin.News.edit');
-    Route::put('/News/{id}', [NewsController::class, 'update'])->name('Admin.News.update');
-    Route::delete('/News/{id}', [NewsController::class, 'destroy'])->name('Admin.News.destroy');
+Route::get('/news/{id}', function ($id) {
+    $news = NewsUpdate::with('newsDetails')->findOrFail($id);
+    return Inertia::render('Frontpage/News/Show', [
+        'news' => $news,
+    ]);
+})->name('news.show');
 
-    // News Details
-    Route::get('/NewsDetails', [NewsDetailsController::class, 'index'])->name('Admin.NewsDetails.index');
-    Route::get('/NewsDetails/create', [NewsDetailsController::class, 'create'])->name('Admin.NewsDetails.create');
-    Route::post('/NewsDetails', [NewsDetailsController::class, 'store'])->name('Admin.NewsDetails.store');
-    Route::get('/NewsDetails/{id}/edit', [NewsDetailsController::class, 'edit'])->name('Admin.NewsDetails.edit');
-    Route::put('/NewsDetails/{id}', [NewsDetailsController::class, 'update'])->name('Admin.NewsDetails.update');
-    Route::delete('/NewsDetails/{id}', [NewsDetailsController::class, 'destroy'])->name('Admin.NewsDetails.destroy');
+// ── Officers ────────────────────────────────────────────────────────────
+Route::get('/officers', function () {
+    return Inertia::render('Frontpage/Officer/Index', [
+        'categories' => OfficerCategory::with('officers')->get(),
+    ]);
+})->name('officers');
 
-    // Home Page
-    Route::get('/HomePage', [HomePageController::class, 'index'])->name('Admin.HomePage.index');
-    Route::get('/HomePage/create', [HomePageController::class, 'create'])->name('Admin.HomePage.create');
-    Route::post('/HomePage', [HomePageController::class, 'store'])->name('Admin.HomePage.store');
-    Route::get('/HomePage/{id}/edit', [HomePageController::class, 'edit'])->name('Admin.HomePage.edit');
-    Route::put('/HomePage/{id}', [HomePageController::class, 'update'])->name('Admin.HomePage.update');
-    Route::delete('/HomePage/{id}', [HomePageController::class, 'destroy'])->name('Admin.HomePage.destroy');
+// ── Contact Us ──────────────────────────────────────────────────────────
+Route::get('/contact', function () {
+    return Inertia::render('Frontpage/Contact/Index');
+})->name('contact');
 
-});
+// ── Downloadable Forms ──────────────────────────────────────────────────
+Route::get('/downloads', function () {
+    return Inertia::render('Frontpage/Downloadbles/Index', [
+        'downloadables' => Downloadable::with('category')->get(),
+        'categories'    => DownloadableCategory::all(),
+    ]);
+})->name('downloads');
 
+// admin routes are stored separately in routes/admin.php
+require __DIR__.'/admin.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
